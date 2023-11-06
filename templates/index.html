@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Are you a MITM?</title>
+
+    <!-- Axios Library -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
+      async function hashUsingSHA256(str) {
+        const buffer = new TextEncoder().encode(str);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+      }
+
+      async function detectMITM() {
+        try {
+          const currentURL = window.location.host;
+          document.getElementById('currentURL').innerText = currentURL;
+
+          const hostHash = await hashUsingSHA256(currentURL);
+          console.log("Host Hash: " + hostHash);
+
+          const response = await axios.post('/detectMITM', {
+            hostHash: hostHash,
+          }, {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
+          document.getElementById('result').innerText = response.data.message;
+        } catch (error) {
+          console.error('Error in detectMITM:', error);
+          document.getElementById('result').innerText = 'Error during MITM detection.';
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>This ia a basic POC MITM Detection</h1>
+    <p>
+      Server expects: <span id="serverURL"></span><br/>
+      Currently on: <span id="currentURL"></span><br/>
+      So you are: <span id="result"></span><br/>
+      <button onclick="detectMITM();">Detect</button><br/>
+    </p>
+  </body>
+</html>
